@@ -61,6 +61,8 @@ typedef struct ueinfo {
   {"ue-fo-compensation",           CONFIG_HLP_UEFO,            PARAMFLAG_BOOL,  .iptr=&(nrUE_params.UE_fo_compensation),     .defintval=0,      TYPE_INT,      0}, \
   {"ue-max-power",                 NULL,                       0,               .iptr=&(tx_max_power[0]),            .defintval=90,     TYPE_INT,      0}, \
   {"A" ,                           CONFIG_HLP_TADV,            0,               .iptr=&(nrUE_params.timing_advance),         .defintval=0,      TYPE_INT,      0}, \
+  {"sl-ta",                        "PoC patch: sidelink TX timing advance (samples)\n", 0,         .iptr=&(nrUE_params.timing_advance_sl),      .defintval=0,      TYPE_INT,      0}, \
+  {"sl-max-mcs",                   "PoC patch: hard cap on sidelink PSSCH MCS after link adaptation\n", 0, .iptr=&(nrUE_params.sl_max_mcs_cap), .defintval=28, TYPE_INT, 0}, \
   {"E" ,                           CONFIG_HLP_TQFS,            PARAMFLAG_BOOL,  .iptr=&(nrUE_params.threequarter_fs),       .defintval=0,      TYPE_UINT8,    0}, \
   {"r"  ,                          CONFIG_HLP_PRB_SA,          0,               .iptr=&(nrUE_params.N_RB_DL),                .defintval=106,    TYPE_UINT,     0}, \
   {"ssb",                          CONFIG_HLP_SSC,             0,               .iptr=&(nrUE_params.ssb_start_subcarrier), .defintval=516,    TYPE_UINT16,   0}, \
@@ -86,6 +88,7 @@ typedef struct {
   int            UE_fo_compensation;
   int            timing_advance;
   int            timing_advance_sl;
+  int            sl_max_mcs_cap;
   uint64_t       if_freq;
   int            if_freq_off;
   int            chest_freq;

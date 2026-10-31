@@ -273,6 +273,11 @@ void nr_schedule_slsch(NR_UE_MAC_INST_t *mac, int frameP, int slotP, nr_sci_pdu_
     sched_pssch->mcs = get_mcs_from_bler(sl_bo, stats, &sched_ctrl->sl_bler_stats, max_mcs, frameP);
   }
 
+  // Local PoC patch: hard MCS cap. OTA, the PSSCH receiver fails rate matching at MCS >= 19 on this branch
+  // (while still reporting the TB as correct), so link adaptation must not go there.
+  if (sched_pssch->mcs > get_nrUE_params()->sl_max_mcs_cap)
+    sched_pssch->mcs = get_nrUE_params()->sl_max_mcs_cap;
+
   uint16_t sl_max_num_reserve = *mac->sl_tx_res_pool->sl_UE_SelectedConfigRP_r16->sl_MaxNumPerReserve_r16;
   /*
   Following values are based on spec. 38214 section 8.1.5, N = 1 or 2 actual resources when sl-
