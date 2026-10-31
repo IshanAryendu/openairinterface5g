@@ -760,9 +760,9 @@ void tx_rf(RU_t *ru,
       sf_extension = ru->sf_extension;
     }
 
-#if defined(__x86_64) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     sf_extension = (sf_extension)&0xfffffff8;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     sf_extension = (sf_extension)&0xfffffffc;
 #endif
 

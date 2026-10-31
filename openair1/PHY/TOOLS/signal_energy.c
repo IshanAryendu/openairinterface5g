@@ -31,7 +31,7 @@
 //#define shift_DC 0
 //#define SHRT_MIN -32768
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 #ifdef LOCALIZATION
 int32_t subcarrier_energy(int32_t *input,uint32_t length, int32_t *subcarrier_energy, uint16_t rx_power_correction)
 {
@@ -174,7 +174,7 @@ int32_t signal_energy_nodc(int32_t *input,uint32_t length)
   return temp;
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
 int32_t signal_energy(int32_t *input,uint32_t length)
 {

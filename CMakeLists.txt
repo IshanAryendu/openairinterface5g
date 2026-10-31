@@ -139,10 +139,13 @@ if(${CPUARCH} STREQUAL "x86_64" AND DEFINED CPUFLAGS)
   if(CPUINFO MATCHES "ssse3")
     set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_X86_SSSE3_NATIVE")
   endif()
-elseif(${CPUARCH} NOT STREQUAL "x86_64")
+elseif(NOT ${CPUARCH} STREQUAL "x86_64" AND NOT ${CPUARCH} STREQUAL "aarch64")  # local: allow aarch64 (Jetson), SIMDE maps x86 intrinsics to NEON
   message(FATAL_ERROR "Cannot compile for CPU architecture ${CPUARCH}")
 endif()
 
+if(${CPUARCH} STREQUAL "aarch64")
+  set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -DSIMDE_ENABLE_NATIVE_ALIASES")  # local: Jetson port
+endif()
 set(C_FLAGS_PROCESSOR "${C_FLAGS_PROCESSOR} -march=native")
 
 # add autotools definitions that were maybe used!
@@ -852,6 +855,9 @@ endif()
 
 add_library(ldpc MODULE ${PHY_LDPC_OPTIM8SEGMULTI_SRC} )
 target_link_libraries(ldpc PRIVATE ldpc_gen_HEADERS)
+if(${CPUARCH} STREQUAL "aarch64")  # local Jetson: -O2 with SIMDE AVX2 emulation takes >45 min for this file
+  set_source_files_properties(${OPENAIR1_DIR}/PHY/CODING/nrLDPC_encoder/ldpc_encoder_optim8segmulti.c PROPERTIES COMPILE_OPTIONS "-O1;-g0")
+endif()
 
 add_library(ldpc_parityCheck MODULE ${PHY_LDPC_OPTIM8SEGMULTI_SRC} )
 target_compile_definitions(ldpc_parityCheck PUBLIC NR_LDPC_ENABLE_PARITY_CHECK)
@@ -2163,7 +2169,7 @@ target_link_libraries(nr-uesoftmodem PRIVATE pthread m CONFIG_LIB rt)
 target_link_libraries(nr-uesoftmodem PRIVATE ${T_LIB})
 target_link_libraries(nr-uesoftmodem PRIVATE asn1_nr_rrc_hdrs asn1_lte_rrc_hdrs)
 
-add_dependencies( nr-uesoftmodem ldpc_orig ldpc_optim ldpc_optim8seg ldpc )
+add_dependencies( nr-uesoftmodem ldpc_orig ldpc )  # local Jetson: skip unused ldpc_optim/optim8seg (slow SIMDE builds)
 if (ENABLE_LDPC_CUDA)
    add_dependencies(nr-uesoftmodem ldpc_cuda)
    add_dependencies(nr-softmodem ldpc_cuda)

@@ -148,10 +148,10 @@ int pbch_channel_level(int **dl_ch_estimates_ext,
                        uint32_t symbol) {
   int16_t rb, nb_rb=6;
   uint8_t aatx,aarx;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i avg128;
   __m128i *dl_ch128;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int32x4_t avg128;
   int16x8_t *dl_ch128;
 #endif
@@ -162,20 +162,20 @@ int pbch_channel_level(int **dl_ch_estimates_ext,
   for (aatx=0; aatx<4; aatx++) //frame_parms->nb_antenna_ports_eNB;aatx++)
     for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
       //clear average level
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       avg128 = _mm_setzero_si128();
       dl_ch128=(__m128i *)&dl_ch_estimates_ext[(aatx<<1)+aarx][symbol_mod*6*12];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
       avg128 = vdupq_n_s32(0);
       dl_ch128=(int16x8_t *)&dl_ch_estimates_ext[(aatx<<1)+aarx][symbol_mod*6*12];
 #endif
 
       for (rb=0; rb<nb_rb; rb++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
         avg128 = _mm_add_epi32(avg128,_mm_madd_epi16(dl_ch128[0],dl_ch128[0]));
         avg128 = _mm_add_epi32(avg128,_mm_madd_epi16(dl_ch128[1],dl_ch128[1]));
         avg128 = _mm_add_epi32(avg128,_mm_madd_epi16(dl_ch128[2],dl_ch128[2]));
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
         // to be filled in
 #endif
         dl_ch128+=3;
@@ -199,16 +199,16 @@ int pbch_channel_level(int **dl_ch_estimates_ext,
       //msg("Channel level : %d, %d\n",avg1, avg2);
     }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif
   return(avg2);
 }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i mmtmpP0,mmtmpP1,mmtmpP2,mmtmpP3;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t mmtmpP0,mmtmpP1,mmtmpP2,mmtmpP3;
 #endif
 void pbch_channel_compensation(int **rxdataF_ext,
@@ -219,25 +219,25 @@ void pbch_channel_compensation(int **rxdataF_ext,
                                uint8_t output_shift) {
   uint16_t rb,nb_rb=6;
   uint8_t aatx,aarx,symbol_mod;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *dl_ch128,*rxdataF128,*rxdataF_comp128;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
   symbol_mod = (symbol>=(7-frame_parms->Ncp)) ? symbol-(7-frame_parms->Ncp) : symbol;
 
   for (aatx=0; aatx<4; aatx++) //frame_parms->nb_antenna_ports_eNB;aatx++)
     for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       dl_ch128          = (__m128i *)&dl_ch_estimates_ext[(aatx<<1)+aarx][symbol_mod*6*12];
       rxdataF128        = (__m128i *)&rxdataF_ext[aarx][symbol_mod*6*12];
       rxdataF_comp128   = (__m128i *)&rxdataF_comp[(aatx<<1)+aarx][symbol_mod*6*12];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
       // to be filled in
 #endif
 
       for (rb=0; rb<nb_rb; rb++) {
         //printf("rb %d\n",rb);
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
         // multiply by conjugated channel
         mmtmpP0 = _mm_madd_epi16(dl_ch128[0],rxdataF128[0]);
         //  print_ints("re",&mmtmpP0);
@@ -303,13 +303,13 @@ void pbch_channel_compensation(int **rxdataF_ext,
           rxdataF_comp128+=2;
         }
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
         // to be filled in
 #endif
       }
     }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif
@@ -320,35 +320,35 @@ void pbch_detection_mrc(LTE_DL_FRAME_PARMS *frame_parms,
                         uint8_t symbol) {
   uint8_t aatx, symbol_mod;
   int i, nb_rb=6;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *rxdataF_comp128_0,*rxdataF_comp128_1;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t *rxdataF_comp128_0,*rxdataF_comp128_1;
 #endif
   symbol_mod = (symbol>=(7-frame_parms->Ncp)) ? symbol-(7-frame_parms->Ncp) : symbol;
 
   if (frame_parms->nb_antennas_rx>1) {
     for (aatx=0; aatx<4; aatx++) { //frame_parms->nb_antenna_ports_eNB;aatx++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       rxdataF_comp128_0   = (__m128i *)&rxdataF_comp[(aatx<<1)][symbol_mod*6*12];
       rxdataF_comp128_1   = (__m128i *)&rxdataF_comp[(aatx<<1)+1][symbol_mod*6*12];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
       rxdataF_comp128_0   = (int16x8_t *)&rxdataF_comp[(aatx<<1)][symbol_mod*6*12];
       rxdataF_comp128_1   = (int16x8_t *)&rxdataF_comp[(aatx<<1)+1][symbol_mod*6*12];
 #endif
 
       // MRC on each re of rb, both on MF output and magnitude (for 16QAM/64QAM llr computation)
       for (i=0; i<nb_rb*3; i++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
         rxdataF_comp128_0[i] = _mm_adds_epi16(_mm_srai_epi16(rxdataF_comp128_0[i],1),_mm_srai_epi16(rxdataF_comp128_1[i],1));
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
         rxdataF_comp128_0[i] = vhaddq_s16(rxdataF_comp128_0[i],rxdataF_comp128_1[i]);
 #endif
       }
     }
   }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif

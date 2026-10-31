@@ -49,7 +49,7 @@
 #define SSE_INTRIN_H
 
 
-#if defined(__x86_64) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 
 /* x86 processors */
 
@@ -67,7 +67,7 @@
 #include <immintrin.h>
 #endif
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
 /* ARM processors */
 
@@ -79,16 +79,16 @@
  * OAI specific
  */
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   #define vect128 __m128i
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   #define vect128 int16x8_t
 #endif
 
 static const short minusConjug128[8]__attribute__((aligned(16))) = {-1,1,-1,1,-1,1,-1,1};
 static inline vect128 mulByConjugate128(vect128 *a, vect128 *b, int8_t output_shift) {
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   vect128 realPart = _mm_madd_epi16(*a,*b);
   realPart = _mm_srai_epi32(realPart,output_shift);
   vect128 imagPart = _mm_shufflelo_epi16(*b,_MM_SHUFFLE(2,3,0,1));
@@ -99,12 +99,12 @@ static inline vect128 mulByConjugate128(vect128 *a, vect128 *b, int8_t output_sh
   vect128 lowPart = _mm_unpacklo_epi32(realPart,imagPart);
   vect128 highPart = _mm_unpackhi_epi32(realPart,imagPart);
   return ( _mm_packs_epi32(lowPart,highPart));
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   AssertFatal(false, "not developped\n");
 #endif
 }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 #define displaySamples128(vect)  {\
     __m128i x=vect;                                       \
     printf("vector: %s = (%hd,%hd) (%hd,%hd) (%hd,%hd) (%hd,%hd)\n", #vect, \
@@ -117,7 +117,7 @@ static inline vect128 mulByConjugate128(vect128 *a, vect128 *b, int8_t output_sh
            _mm_extract_epi16(x,6),\
            _mm_extract_epi16(x,7));\
   }
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   displaySamples128(vect) {}
 //TBD
 #endif

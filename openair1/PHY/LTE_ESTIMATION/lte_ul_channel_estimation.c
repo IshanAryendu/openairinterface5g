@@ -100,10 +100,10 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
   //debug_msg("lte_ul_channel_estimation: cyclic shift %d\n",cyclicShift);
   const int16_t alpha_re[12] = {32767, 28377, 16383, 0, -16384, -28378, -32768, -28378, -16384, -1, 16383, 28377};
   const int16_t alpha_im[12] = {0, 16383, 28377, 32767, 28377, 16383, 0, -16384, -28378, -32768, -28378, -16384};
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *rxdataF128,*ul_ref128,*ul_ch128;
   __m128i mmtmpU0,mmtmpU1,mmtmpU2,mmtmpU3;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t *rxdataF128,*ul_ref128,*ul_ch128;
   int32x4_t mmtmp0,mmtmp1,mmtmp_re,mmtmp_im;
 #endif
@@ -143,18 +143,18 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
     symbol_offset = frame_parms->N_RB_UL*12*(l+((7-frame_parms->Ncp)*(Ns&1)));
 
     for (aa=0; aa<nb_antennas_rx; aa++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       rxdataF128 = (__m128i *)&rxdataF_ext[aa][symbol_offset];
       ul_ch128   = (__m128i *)&ul_ch_estimates[aa][symbol_offset];
       ul_ref128  = (__m128i *)ul_ref_sigs_rx[u][v][Msc_RS_idx];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
       rxdataF128 = (int16x8_t *)&rxdataF_ext[aa][symbol_offset];
       ul_ch128   = (int16x8_t *)&ul_ch_estimates[aa][symbol_offset];
       ul_ref128  = (int16x8_t *)ul_ref_sigs_rx[u][v][Msc_RS_idx];
 #endif
 
       for (i=0; i<Msc_RS/12; i++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
         // multiply by conjugated channel
         mmtmpU0 = _mm_madd_epi16(ul_ref128[0],rxdataF128[0]);
         // mmtmpU0 contains real part of 4 consecutive outputs (32-bit)
@@ -194,7 +194,7 @@ int32_t lte_ul_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
         mmtmpU2 = _mm_unpacklo_epi32(mmtmpU0,mmtmpU1);
         mmtmpU3 = _mm_unpackhi_epi32(mmtmpU0,mmtmpU1);
         ul_ch128[2] = _mm_packs_epi32(mmtmpU2,mmtmpU3);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
         mmtmp0 = vmull_s16(((int16x4_t *)ul_ref128)[0],((int16x4_t *)rxdataF128)[0]);
         mmtmp1 = vmull_s16(((int16x4_t *)ul_ref128)[1],((int16x4_t *)rxdataF128)[1]);
         mmtmp_re = vcombine_s32(vpadd_s32(vget_low_s32(mmtmp0),vget_high_s32(mmtmp0)),
@@ -436,10 +436,10 @@ int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
   //debug_msg("lte_ul_channel_estimation_RRU: cyclic shift %d\n",cyclicShift);
   const int16_t alpha_re[12] = {32767, 28377, 16383, 0, -16384, -28378, -32768, -28378, -16384, -1, 16383, 28377};
   const int16_t alpha_im[12] = {0, 16383, 28377, 32767, 28377, 16383, 0, -16384, -28378, -32768, -28378, -16384};
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *rxdataF128,*ul_ref128,*ul_ch128;
   __m128i mmtmpU0,mmtmpU1,mmtmpU2,mmtmpU3;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t *rxdataF128,*ul_ref128,*ul_ch128;
   int32x4_t mmtmp0,mmtmp1,mmtmp_re,mmtmp_im;
 #endif
@@ -471,18 +471,18 @@ int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
   symbol_offset = frame_parms->N_RB_UL*12*l;
 
   for (aa=0; aa<nb_antennas_rx; aa++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     rxdataF128 = (__m128i *)&rxdataF_ext[aa][symbol_offset];
     ul_ch128   = (__m128i *)&ul_ch_estimates[aa][symbol_offset];
     ul_ref128  = (__m128i *)ul_ref_sigs_rx[u][v][Msc_RS_idx];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     rxdataF128 = (int16x8_t *)&rxdataF_ext[aa][symbol_offset];
     ul_ch128   = (int16x8_t *)&ul_ch_estimates[aa][symbol_offset];
     ul_ref128  = (int16x8_t *)ul_ref_sigs_rx[u][v][Msc_RS_idx];
 #endif
 
     for (i=0; i<Msc_RS/12; i++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       // multiply by conjugated channel
       mmtmpU0 = _mm_madd_epi16(ul_ref128[0],rxdataF128[0]);
       // mmtmpU0 contains real part of 4 consecutive outputs (32-bit)
@@ -522,7 +522,7 @@ int32_t lte_ul_channel_estimation_RRU(LTE_DL_FRAME_PARMS *frame_parms,
       mmtmpU2 = _mm_unpacklo_epi32(mmtmpU0,mmtmpU1);
       mmtmpU3 = _mm_unpackhi_epi32(mmtmpU0,mmtmpU1);
       ul_ch128[2] = _mm_packs_epi32(mmtmpU2,mmtmpU3);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
       mmtmp0 = vmull_s16(((int16x4_t *)ul_ref128)[0],((int16x4_t *)rxdataF128)[0]);
       mmtmp1 = vmull_s16(((int16x4_t *)ul_ref128)[1],((int16x4_t *)rxdataF128)[1]);
       mmtmp_re = vcombine_s32(vpadd_s32(vget_low_s32(mmtmp0),vget_high_s32(mmtmp0)),
@@ -804,7 +804,7 @@ int32_t lte_srs_channel_estimation(LTE_DL_FRAME_PARMS *frame_parms,
 int16_t lte_ul_freq_offset_estimation(LTE_DL_FRAME_PARMS *frame_parms,
                                       int32_t *ul_ch_estimates,
                                       uint16_t nb_rb) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   int k, rb;
   int a_idx = 64;
   uint8_t conj_flag = 0;
@@ -933,7 +933,7 @@ int16_t lte_ul_freq_offset_estimation(LTE_DL_FRAME_PARMS *frame_parms,
     phase_idx = -phase_idx;
 
   return(phase_idx);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   return(0);
 #endif
 }

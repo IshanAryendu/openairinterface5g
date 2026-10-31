@@ -40,7 +40,12 @@
 #ifndef __CRC_H__
 #define __CRC_H__
 
+#if defined(__x86_64__) || defined(__i386__)
 #include <x86intrin.h>
+#else
+#include <simde/x86/clmul.h>
+#include <simde/x86/sse4.1.h>
+#endif
 
 #include "crcext.h"
 #include "types.h"

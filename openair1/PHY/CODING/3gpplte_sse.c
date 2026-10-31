@@ -45,7 +45,7 @@
 //#define DEBUG_TURBO_ENCODER 1
 //#define CALLGRIND 1
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 struct treillis {
   union {
     __m64 systematic_andp1_64[3];
@@ -58,7 +58,7 @@ struct treillis {
   int exit_state;
 }  __attribute__ ((aligned(64)));
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
 struct treillis {
   union {
@@ -126,7 +126,7 @@ static void treillis_table_init(void) {
 char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsigned char *output, int n) {
   char expandInput[768*8] __attribute__((aligned(32)));
   int i,loop=n>>4;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m256i *i_256=(__m256i *)input, *o_256=(__m256i *)expandInput;
   __m256i tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
   __m256i BIT_MASK = simde_mm256_set_epi8(  0b00000001,
@@ -161,7 +161,7 @@ char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsig
                                        0b00100000,
                                        0b01000000,
                                        0b10000000);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   uint8x16_t *i_128=(uint8x16_t *)input, *o_128=(uint8x16_t *)expandInput;
   uint8x16_t tmp1,tmp2;
   uint16x8_t tmp3;
@@ -194,7 +194,7 @@ char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsig
     // int cur_byte=i<<3;
     // for (b=0;b<8;b++)
     //   expandInput[cur_byte+b] = (input[i]&(1<<(7-b)))>>(7-b);
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     tmp1=simde_mm256_load_si256(i_256++);       // tmp1 = B0,B1,...,B15,...,B31
     //print_bytes2("in",(uint8_t*)&tmp1);
     tmp2=simde_mm256_unpacklo_epi8(tmp1,tmp1);  // tmp2 = B0,B0,B1,B1,...,B7,B7,B16,B16,B17,B17,...,B23,B23
@@ -260,7 +260,7 @@ char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsig
     o_256[7]=simde_mm256_cmpeq_epi8(simde_mm256_and_si256(tmp7,BIT_MASK),BIT_MASK);;
     //print_bytes2("out",(uint8_t*)(o_256+7));
     o_256+=8;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     tmp1=vld1q_u8((uint8_t *)i_128);
     //print_bytes("tmp1:",(uint8_t*)&tmp1);
     uint8x16x2_t temp1 =  vzipq_u8(tmp1,tmp1);
@@ -316,10 +316,10 @@ char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsig
   }
 
   short *ptr_intl=base_interleaver;
-#if defined(__x86_64) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m256i tmp={0};
   uint32_t *systematic2_ptr=(uint32_t *) output;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   uint8x16_t tmp;
   const uint8_t __attribute__ ((aligned (16))) _Powers[16]=
   { 1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128 };
@@ -330,7 +330,7 @@ char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsig
   int input_length_words=1+((n-1)>>2);
 
   for ( i=0; i<  input_length_words ; i ++ ) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     tmp=simde_mm256_insert_epi8(tmp,expandInput[*ptr_intl++],7);
     tmp=simde_mm256_insert_epi8(tmp,expandInput[*ptr_intl++],6);
     tmp=simde_mm256_insert_epi8(tmp,expandInput[*ptr_intl++],5);
@@ -364,7 +364,7 @@ char interleave_compact_byte(short *base_interleaver,unsigned char *input, unsig
     tmp=simde_mm256_insert_epi8(tmp,expandInput[*ptr_intl++],24+1);
     tmp=simde_mm256_insert_epi8(tmp,expandInput[*ptr_intl++],24+0);
     *systematic2_ptr++=(unsigned int)simde_mm256_movemask_epi8(tmp);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     tmp=vsetq_lane_u8(expandInput[*ptr_intl++],tmp,7);
     tmp=vsetq_lane_u8(expandInput[*ptr_intl++],tmp,6);
     tmp=vsetq_lane_u8(expandInput[*ptr_intl++],tmp,5);
@@ -428,9 +428,9 @@ void threegpplte_turbo_encoder_sse(unsigned char *input,
 
   unsigned char systematic2[768] __attribute__((aligned(32)));
   interleave_compact_byte(base_interleaver,input,systematic2,input_length_bytes);
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m64 *ptr_output=(__m64 *) output;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   uint8x8_t *ptr_output=(uint8x8_t *)output;
 #endif
   unsigned char cur_s1, cur_s2;
@@ -441,7 +441,7 @@ void threegpplte_turbo_encoder_sse(unsigned char *input,
     cur_s2=systematic2[i];
 
     for ( code_rate=0; code_rate<3; code_rate++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       /*
        *ptr_output++ = _mm_add_pi8(all_treillis[state0][cur_s1].systematic_64[code_rate],
        _mm_add_pi8(all_treillis[state0][cur_s1].parity1_64[code_rate],
@@ -449,7 +449,7 @@ void threegpplte_turbo_encoder_sse(unsigned char *input,
       */
       *ptr_output++ = _mm_add_pi8(all_treillis[state0][cur_s1].systematic_andp1_64[code_rate],
                                   all_treillis[state1][cur_s2].parity2_64[code_rate]);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
       *ptr_output++ = vadd_u8(all_treillis[state0][cur_s1].systematic_andp1_64[code_rate],
                               all_treillis[state0][cur_s1].parity2_64[code_rate]);
 #endif
@@ -485,7 +485,7 @@ void threegpplte_turbo_encoder_sse(unsigned char *input,
 #ifdef DEBUG_TURBO_ENCODER
   printf("term: x0 %u, x1 %u, state1 %d\n",x[10],x[11],state1);
 #endif //DEBUG_TURBO_ENCODER
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif

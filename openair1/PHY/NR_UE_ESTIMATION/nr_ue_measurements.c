@@ -169,7 +169,7 @@ void nr_ue_measurements(PHY_VARS_NR_UE *ue,
       ue->measurements.n0_power_tot);
   }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif

@@ -233,7 +233,7 @@ void build_decoder_tree(t_nrPolar_params *polarParams)
 #endif
 }
 
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 // translate 1-1 SIMD functions from SSE to NEON
 #define __m128i int16x8_t
 #define __m64 int8x8_t

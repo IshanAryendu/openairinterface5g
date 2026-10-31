@@ -32,9 +32,9 @@ void remove_7_5_kHz(RU_t *ru,uint8_t slot)
   int32_t **rxdata_7_5kHz=ru->common.rxdata_7_5kHz;
   uint16_t len;
   uint32_t *kHz7_5ptr;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *rxptr128,*rxptr128_7_5kHz,*kHz7_5ptr128,kHz7_5_2,mmtmp_re,mmtmp_im,mmtmp_re2,mmtmp_im2;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t *rxptr128,*kHz7_5ptr128,*rxptr128_7_5kHz;
   int32x4_t mmtmp_re,mmtmp_im;
   int32x4_t mmtmp0,mmtmp1;
@@ -84,11 +84,11 @@ void remove_7_5_kHz(RU_t *ru,uint8_t slot)
 
   for (aa=0; aa<ru->nb_rx; aa++) {
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     rxptr128        = (__m128i *)&rxdata[aa][slot_offset];
     rxptr128_7_5kHz = (__m128i *)&rxdata_7_5kHz[aa][slot_offset2];
     kHz7_5ptr128    = (__m128i *)kHz7_5ptr;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     rxptr128        = (int16x8_t *)&rxdata[aa][slot_offset];
     rxptr128_7_5kHz = (int16x8_t *)&rxdata_7_5kHz[aa][slot_offset2];
     kHz7_5ptr128    = (int16x8_t *)kHz7_5ptr;
@@ -98,7 +98,7 @@ void remove_7_5_kHz(RU_t *ru,uint8_t slot)
     //      if (((slot>>1)&1) == 0) { // apply the sinusoid from the table directly
     for (i=0; i<(len>>2); i++) {
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       kHz7_5_2 = _mm_sign_epi16(*kHz7_5ptr128,*(__m128i*)&conjugate75_2[0]);
       mmtmp_re = _mm_madd_epi16(*rxptr128,kHz7_5_2);
       // Real part of complex multiplication (note: 7_5kHz signal is conjugated for this to work)
@@ -116,7 +116,7 @@ void remove_7_5_kHz(RU_t *ru,uint8_t slot)
       rxptr128_7_5kHz++;
       kHz7_5ptr128++;
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
       kHz7_5ptr128[0] = vmulq_s16(kHz7_5ptr128[0],((int16x8_t*)conjugate75_2)[0]);
       mmtmp0 = vmull_s16(((int16x4_t*)rxptr128)[0],((int16x4_t*)kHz7_5ptr128)[0]);

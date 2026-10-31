@@ -140,7 +140,7 @@ trx_iris_write(openair0_device *device, openair0_timestamp timestamp, void **buf
 
     iris_state_t *s = (iris_state_t *) device->priv;
     int nsamps2;  // aligned to upper 32 or 16 byte boundary
-#if defined(__x86_64) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     nsamps2 = (nsamps+7)>>3;
     __m256i buff_tx[2][nsamps2];
 #else
@@ -150,7 +150,7 @@ trx_iris_write(openair0_device *device, openair0_timestamp timestamp, void **buf
     // bring RX data into 12 LSBs for softmodem RX
     for (int i=0; i<cc; i++) {
       for (int j=0; j<nsamps2; j++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
         buff_tx[i][j] = simde_mm256_slli_epi16(((__m256i *)buff[i])[j],4);
 #endif
       }
@@ -229,7 +229,7 @@ static int trx_iris_read(openair0_device *device, openair0_timestamp *ptimestamp
     int r;
     int m = s->rx_num_channels;
     int nsamps2;  // aligned to upper 32 or 16 byte boundary
-#if defined(__x86_64) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     nsamps2 = (nsamps+7)>>3;
     __m256i buff_tmp[2][nsamps2];
 #endif
@@ -302,7 +302,7 @@ static int trx_iris_read(openair0_device *device, openair0_timestamp *ptimestamp
         // bring RX data into 12 LSBs for softmodem RX
         for (int i=0; i<cc; i++) {
           for (int j=0; j<nsamps2; j++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
             ((__m256i *)buff[i])[j] = simde_mm256_srai_epi16(buff_tmp[i][j],4);
 #endif
           }

@@ -31,9 +31,9 @@ void apply_7_5_kHz(PHY_VARS_UE *ue,int32_t*txdata,uint8_t slot)
 
   uint16_t len;
   uint32_t *kHz7_5ptr;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *txptr128,*kHz7_5ptr128,mmtmp_re,mmtmp_im,mmtmp_re2,mmtmp_im2;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t *txptr128,*kHz7_5ptr128;
   int32x4_t mmtmp_re,mmtmp_im;
   int32x4_t mmtmp0,mmtmp1;
@@ -77,17 +77,17 @@ void apply_7_5_kHz(PHY_VARS_UE *ue,int32_t*txdata,uint8_t slot)
   slot_offset = (uint32_t)slot * frame_parms->samples_per_tti/2;
   len = frame_parms->samples_per_tti/2;
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   txptr128 = (__m128i *)&txdata[slot_offset];
   kHz7_5ptr128 = (__m128i *)kHz7_5ptr;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   txptr128 = (int16x8_t*)&txdata[slot_offset];
   kHz7_5ptr128 = (int16x8_t*)kHz7_5ptr;
 #endif
   // apply 7.5 kHz
 
   for (i=0; i<(len>>2); i++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     mmtmp_re = _mm_madd_epi16(*txptr128,*kHz7_5ptr128);
     // Real part of complex multiplication (note: 7_5kHz signal is conjugated for this to work)
     mmtmp_im = _mm_shufflelo_epi16(*kHz7_5ptr128,_MM_SHUFFLE(2,3,0,1));
@@ -102,7 +102,7 @@ void apply_7_5_kHz(PHY_VARS_UE *ue,int32_t*txdata,uint8_t slot)
     txptr128[0] = _mm_packs_epi32(mmtmp_re2,mmtmp_im2);
     txptr128++;
     kHz7_5ptr128++;  
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
     mmtmp0 = vmull_s16(((int16x4_t*)txptr128)[0],((int16x4_t*)kHz7_5ptr128)[0]);
         //mmtmp0 = [Re(ch[0])Re(rx[0]) Im(ch[0])Im(ch[0]) Re(ch[1])Re(rx[1]) Im(ch[1])Im(ch[1])] 

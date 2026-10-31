@@ -703,7 +703,7 @@ void dlsch_channel_level_TM34_meas(int *ch00,
                                    unsigned short nb_rb)
 {
 
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
 
   short rb;
   unsigned char nre=12;
@@ -771,7 +771,7 @@ void dlsch_channel_level_TM34_meas(int *ch00,
   _mm_empty();
   _m_empty();
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
 #endif
 }
@@ -1019,9 +1019,9 @@ void lte_ue_measurements(PHY_VARS_UE *ue,
   //int rx_power[NUMBER_OF_CONNECTED_eNB_MAX];
   int i;
   unsigned int limit,subband;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *dl_ch0_128,*dl_ch1_128;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x8_t *dl_ch0_128, *dl_ch1_128;
 #endif
   int *dl_ch0=NULL,*dl_ch1=NULL;
@@ -1215,12 +1215,12 @@ void lte_ue_measurements(PHY_VARS_UE *ue,
         //printf("aarx=%d", aarx);
         // skip the first 4 RE due to interpolation filter length of 5 (not possible to skip 5 due to 128i alignment, must be multiple of 128bit)
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
        __m128i pmi128_re,pmi128_im,mmtmpPMI0,mmtmpPMI1 /* ,mmtmpPMI2,mmtmpPMI3 */ ;
 
         dl_ch0_128    = (__m128i *)&ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[subframe]].dl_ch_estimates[eNB_id][aarx][4];
         dl_ch1_128    = (__m128i *)&ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[subframe]].dl_ch_estimates[eNB_id][2+aarx][4];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
         int32x4_t pmi128_re,pmi128_im,mmtmpPMI0,mmtmpPMI1,mmtmpPMI0b,mmtmpPMI1b;
 
         dl_ch0_128    = (int16x8_t *)&ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[subframe]].dl_ch_estimates[eNB_id][aarx][4];
@@ -1231,11 +1231,11 @@ void lte_ue_measurements(PHY_VARS_UE *ue,
 
 
           // pmi
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 
           pmi128_re = _mm_xor_si128(pmi128_re,pmi128_re);
           pmi128_im = _mm_xor_si128(pmi128_im,pmi128_im);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
           pmi128_re = vdupq_n_s32(0);
           pmi128_im = vdupq_n_s32(0);
@@ -1249,7 +1249,7 @@ void lte_ue_measurements(PHY_VARS_UE *ue,
 
           for (i=0; i<limit; i++) {
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
               mmtmpPMI0 = _mm_xor_si128(mmtmpPMI0,mmtmpPMI0);
               mmtmpPMI1 = _mm_xor_si128(mmtmpPMI1,mmtmpPMI1);
 
@@ -1293,7 +1293,7 @@ void lte_ue_measurements(PHY_VARS_UE *ue,
             pmi128_im = _mm_add_epi32(pmi128_im,mmtmpPMI1);
             //print_ints(" pmi128_im 1 ",&pmi128_im);*/
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
             mmtmpPMI0 = vmull_s16(((int16x4_t*)dl_ch0_128)[0], ((int16x4_t*)dl_ch1_128)[0]);
             mmtmpPMI1 = vmull_s16(((int16x4_t*)dl_ch0_128)[1], ((int16x4_t*)dl_ch1_128)[1]);
@@ -1372,7 +1372,7 @@ void lte_ue_measurements(PHY_VARS_UE *ue,
     // printf("in lte_ue_measurements: selected rx_antenna[eNB_id==0]:%u\n", ue->measurements.selected_rx_antennas[eNB_id][i]);
   }  // eNB_id loop
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif

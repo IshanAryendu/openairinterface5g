@@ -751,7 +751,7 @@ void nr_dlsch_channel_compensation(uint32_t rx_size_symbol,
                                    PHY_NR_MEASUREMENTS *measurements)
 {
 
-#if defined(__i386) || defined(__x86_64)
+#if defined(__i386) || (defined(__x86_64__) || defined(__aarch64__))
 
   unsigned short rb;
   unsigned char aarx,atx;
@@ -1050,7 +1050,7 @@ void nr_dlsch_channel_compensation(uint32_t rx_size_symbol,
   _mm_empty();
   _m_empty();
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
   unsigned short rb;
 
@@ -1244,7 +1244,7 @@ void nr_dlsch_scale_channel(uint32_t rx_size_symbol,
                             unsigned short nb_rb)
 {
 
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
 
   short rb, ch_amp;
   unsigned char aatx,aarx;
@@ -1282,7 +1282,7 @@ void nr_dlsch_scale_channel(uint32_t rx_size_symbol,
     }
   }
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
 #endif
 }
@@ -1299,7 +1299,7 @@ void nr_dlsch_channel_level(uint32_t rx_size_symbol,
 			                      unsigned short nb_rb)
 {
 
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
 
   short rb;
   unsigned char aatx,aarx;
@@ -1338,7 +1338,7 @@ void nr_dlsch_channel_level(uint32_t rx_size_symbol,
   _mm_empty();
   _m_empty();
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
@@ -1400,7 +1400,7 @@ void nr_dlsch_channel_level(uint32_t rx_size_symbol,
 static void nr_dlsch_channel_level_median(uint32_t rx_size_symbol, int32_t dl_ch_estimates_ext[][rx_size_symbol], int32_t *median, int n_tx, int n_rx, int length)
 {
 
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
 
   short ii;
   int aatx,aarx;
@@ -1443,7 +1443,7 @@ static void nr_dlsch_channel_level_median(uint32_t rx_size_symbol, int32_t dl_ch
   _mm_empty();
   _m_empty();
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
@@ -1622,7 +1622,7 @@ void nr_dlsch_detection_mrc(uint32_t rx_size_symbol,
                             unsigned short nb_rb,
                             int length)
 {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   unsigned char aatx, aarx;
   int i;
   __m128i *rxdataF_comp128_0,*rxdataF_comp128_1,*dl_ch_mag128_0,*dl_ch_mag128_1,*dl_ch_mag128_0b,*dl_ch_mag128_1b,*dl_ch_mag128_0r,*dl_ch_mag128_1r;

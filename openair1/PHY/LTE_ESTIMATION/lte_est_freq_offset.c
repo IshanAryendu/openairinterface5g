@@ -28,9 +28,9 @@
 #include "PHY/defs_eNB.h"
 //#define DEBUG_PHY
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 __m128i avg128F;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 int32x4_t avg128F;
 #endif
 
@@ -39,15 +39,15 @@ int dl_channel_level(c16_t *dl_ch, LTE_DL_FRAME_PARMS *frame_parms)
 {
 
   int16_t rb;
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   __m128i *dl_ch128;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   int16x4_t *dl_ch128;
 #endif
   int avg;
 
   //clear average level
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   avg128F = _mm_setzero_si128();
   dl_ch128=(__m128i *)dl_ch;
 
@@ -60,7 +60,7 @@ int dl_channel_level(c16_t *dl_ch, LTE_DL_FRAME_PARMS *frame_parms)
     dl_ch128+=3;
 
   }
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   avg128F = vdupq_n_s32(0);
   dl_ch128=(int16x4_t *)dl_ch;
 
@@ -86,7 +86,7 @@ int dl_channel_level(c16_t *dl_ch, LTE_DL_FRAME_PARMS *frame_parms)
          ((int*)&avg128F)[3])/(frame_parms->N_RB_DL*12);
 
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   _mm_empty();
   _m_empty();
 #endif

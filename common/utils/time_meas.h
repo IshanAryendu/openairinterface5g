@@ -35,7 +35,7 @@
 extern int opp_enabled;
 extern double cpu_freq_GHz  __attribute__ ((aligned(32)));;
 // structure to store data to compute cpu measurment
-#if defined(__x86_64__) || defined(__i386__)
+#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__)  // local: aarch64 64-bit
   typedef long long oai_cputime_t;
 #elif defined(__arm__) || defined(__aarch64__)
   typedef uint32_t oai_cputime_t;
@@ -107,7 +107,16 @@ static inline unsigned long long rdtsc_oai(void) {
   return (d<<32) | a;
 }
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__aarch64__)
+// local Jetson port: no user-space cycle counter; use CLOCK_MONOTONIC as 2 GHz pseudo-cycles
+#include <time.h>
+static inline unsigned long long rdtsc_oai(void) __attribute__((always_inline));
+static inline unsigned long long rdtsc_oai(void) {
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  return ((unsigned long long)t.tv_sec * 1000000000ULL + t.tv_nsec) * 2ULL;
+}
+#elif defined(__arm__)
 static inline uint32_t rdtsc_oai(void) __attribute__((always_inline));
 static inline uint32_t rdtsc_oai(void) {
   uint32_t r = 0;

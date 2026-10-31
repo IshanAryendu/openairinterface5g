@@ -620,10 +620,10 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
       cseq[i2++] = (int16_t)((((s>>j)&1)<<1)-1);
     }
     */
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     ((__m256i *)cseq)[i2++] = ((__m256i *)unscrambling_lut)[s&65535];
     ((__m256i *)cseq)[i2++] = ((__m256i *)unscrambling_lut)[(s>>16)&65535];
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     ((int16x8_t *)cseq)[i2++] = ((int16x8_t *)unscrambling_lut)[(s&65535)<<1];
     ((int16x8_t *)cseq)[i2++] = ((int16x8_t *)unscrambling_lut)[1+((s&65535)<<1)];
     s>>=16;
@@ -961,10 +961,10 @@ unsigned int  ulsch_decoding(PHY_VARS_eNB *eNB,
     }
 
     /* To be improved according to alignment of j2
-    #if defined(__x86_64__)||defined(__i386__)
+    #if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
     for (iprime=0; iprime<G;iprime+=16,j2+=16)
       *((__m256i *)&ulsch_harq->e[iprime]) = *((__m256i *)&y[j2]);
-    #elif defined(__arm__) || defined(__aarch64__)
+    #elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     for (iprime=0; iprime<G;iprime+=8,j2+=8)
       *((int16x8_t *)&ulsch_harq->e[iprime]) = *((int16x8_t *)&y[j2]);
     #endif

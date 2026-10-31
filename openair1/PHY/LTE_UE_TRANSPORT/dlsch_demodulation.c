@@ -1260,7 +1260,7 @@ void dlsch_channel_compensation(int **rxdataF_ext,
                                 unsigned short nb_rb,
                                 unsigned char output_shift,
                                 PHY_MEASUREMENTS *measurements) {
-#if defined(__i386) || defined(__x86_64)
+#if defined(__i386) || (defined(__x86_64__) || defined(__aarch64__))
   unsigned short rb;
   unsigned char aatx,aarx,symbol_mod,pilots=0;
   __m128i *dl_ch128,*dl_ch128_2,*dl_ch_mag128,*dl_ch_mag128b,*rxdataF128,*rxdataF_comp128,*rho128;
@@ -1484,7 +1484,7 @@ void dlsch_channel_compensation(int **rxdataF_ext,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   unsigned short rb;
   unsigned char aatx,aarx,symbol_mod,pilots=0;
   int16x4_t *dl_ch128,*dl_ch128_2,*rxdataF128;
@@ -1854,7 +1854,7 @@ void dlsch_channel_compensation_core(int **rxdataF_ext,
   _m_empty();
 }
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 
 void prec2A_TM56_128(unsigned char pmi,__m128i *ch0,__m128i *ch1) {
   __m128i amp;
@@ -1894,7 +1894,7 @@ void prec2A_TM56_128(unsigned char pmi,__m128i *ch0,__m128i *ch1) {
   _mm_empty();
   _m_empty();
 }
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 void prec2A_TM56_128(unsigned char pmi,__m128i *ch0,__m128i *ch1) {
   // sqrt(2) is already taken into account in computation sqrt_rho_a, sqrt_rho_b,
   //so removed it
@@ -2029,7 +2029,7 @@ void dlsch_channel_compensation_TM56(int **rxdataF_ext,
                                      unsigned short nb_rb,
                                      unsigned char output_shift,
                                      unsigned char dl_power_off) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   unsigned short rb,Nre;
   __m128i *dl_ch0_128,*dl_ch1_128,*dl_ch_mag128,*dl_ch_mag128b,*rxdataF128,*rxdataF_comp128;
   unsigned char aarx=0,symbol_mod,pilots=0;
@@ -2190,7 +2190,7 @@ void dlsch_channel_compensation_TM56(int **rxdataF_ext,
   measurements->precoded_cqi_dB[eNB_id][0] = dB_fixed2(precoded_signal_strength,measurements->n0_power_tot);
   //printf("eNB_id %d, symbol %d: precoded CQI %d dB\n",eNB_id,symbol,
   //   measurements->precoded_cqi_dB[eNB_id][0]);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   uint32_t rb,Nre;
   uint32_t aarx,symbol_mod,pilots=0;
   int16x4_t *dl_ch0_128,*dl_ch1_128,*rxdataF128;
@@ -2426,7 +2426,7 @@ void dlsch_channel_compensation_TM34(LTE_DL_FRAME_PARMS *frame_parms,
                                      unsigned short mmse_flag,
                                      unsigned char output_shift0,
                                      unsigned char output_shift1) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
   unsigned short rb,Nre;
   __m128i *dl_ch0_128,*dl_ch1_128,*dl_ch_mag0_128,*dl_ch_mag1_128,*dl_ch_mag0_128b,*dl_ch_mag1_128b,*rxdataF128,*rxdataF_comp0_128,*rxdataF_comp1_128;
   unsigned char aarx=0,symbol_mod,pilots=0;
@@ -2745,7 +2745,7 @@ void dlsch_channel_compensation_TM34(LTE_DL_FRAME_PARMS *frame_parms,
   //  measurements->precoded_cqi_dB[eNB_id][0]);
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   unsigned short rb,Nre;
   unsigned char aarx,symbol_mod,pilots=0;
   int precoded_signal_strength0=0,precoded_signal_strength1=0, rx_power_correction;
@@ -3010,7 +3010,7 @@ void dlsch_dual_stream_correlation(LTE_DL_FRAME_PARMS *frame_parms,
                                    int **dl_ch_estimates_ext_i,
                                    int **dl_ch_rho_ext,
                                    unsigned char output_shift) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   unsigned short rb;
   __m128i *dl_ch128,*dl_ch128i,*dl_ch_rho128,mmtmpD0,mmtmpD1,mmtmpD2,mmtmpD3;
   unsigned char aarx,symbol_mod,pilots=0;
@@ -3095,7 +3095,7 @@ void dlsch_dual_stream_correlation(LTE_DL_FRAME_PARMS *frame_parms,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 
@@ -3112,7 +3112,7 @@ void dlsch_detection_mrc(LTE_DL_FRAME_PARMS *frame_parms,
                          unsigned char symbol,
                          unsigned short nb_rb,
                          unsigned char dual_stream_UE) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   unsigned char aatx;
   int i;
   __m128i *rxdataF_comp128_0,*rxdataF_comp128_1,*rxdataF_comp128_i0,*rxdataF_comp128_i1,*dl_ch_mag128_0,*dl_ch_mag128_1,*dl_ch_mag128_0b,*dl_ch_mag128_1b,*rho128_0,*rho128_1,*rho128_i0,*rho128_i1,
@@ -3171,7 +3171,7 @@ void dlsch_detection_mrc(LTE_DL_FRAME_PARMS *frame_parms,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   unsigned char aatx;
   int i;
   int16x8_t *rxdataF_comp128_0,*rxdataF_comp128_1,*rxdataF_comp128_i0,*rxdataF_comp128_i1,*dl_ch_mag128_0,*dl_ch_mag128_1,*dl_ch_mag128_0b,*dl_ch_mag128_1b,*rho128_0,*rho128_1,*rho128_i0,*rho128_i1,
@@ -3357,7 +3357,7 @@ void dlsch_scale_channel(int **dl_ch_estimates_ext,
                          LTE_UE_DLSCH_t **dlsch_ue,
                          uint8_t symbol,
                          unsigned short nb_rb) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short rb, ch_amp;
   unsigned char aatx,aarx,pilots=0,symbol_mod;
   __m128i *dl_ch128, ch_amp128;
@@ -3397,7 +3397,7 @@ void dlsch_scale_channel(int **dl_ch_estimates_ext,
     }
   }
 
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 
@@ -3407,7 +3407,7 @@ void dlsch_channel_level(int **dl_ch_estimates_ext,
                          int32_t *avg,
                          uint8_t symbol,
                          unsigned short nb_rb) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   //printf("symbol = %d\n", symbol);
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
@@ -3464,7 +3464,7 @@ void dlsch_channel_level(int **dl_ch_estimates_ext,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
   int32x4_t avg128D;
@@ -3526,7 +3526,7 @@ void dlsch_channel_level_core(int **dl_ch_estimates_ext,
                               int n_rx,
                               int length,
                               int start_point) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short ii;
   int aatx,aarx;
   int length_mod8;
@@ -3564,7 +3564,7 @@ void dlsch_channel_level_core(int **dl_ch_estimates_ext,
   _mm_empty();
   _m_empty();
   /* FIXME This part needs to be adapted like the one above */
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
   int32x4_t avg128D;
@@ -3618,7 +3618,7 @@ void dlsch_channel_level_median(int **dl_ch_estimates_ext,
                                 int n_rx,
                                 int length,
                                 int start_point) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short ii;
   int aatx,aarx;
   int length2;
@@ -3658,7 +3658,7 @@ void dlsch_channel_level_median(int **dl_ch_estimates_ext,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
   int32x4_t norm128D;
@@ -3958,7 +3958,7 @@ void dlsch_channel_aver_band(int **dl_ch_estimates_ext,
                              struct complex32 *chan_avg,
                              unsigned char symbol,
                              unsigned short nb_rb) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
   __m128i *dl_ch128, avg128D;
@@ -4028,7 +4028,7 @@ void dlsch_channel_aver_band(int **dl_ch_estimates_ext,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 
@@ -4285,7 +4285,7 @@ void dlsch_channel_level_TM34(int **dl_ch_estimates_ext,
                               unsigned short nb_rb,
                               unsigned int mmse_flag,
                               MIMO_mode_t mimo_mode) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short rb;
   unsigned char aarx,nre=12,symbol_mod;
   __m128i *dl_ch0_128,*dl_ch1_128, dl_ch0_128_tmp, dl_ch1_128_tmp, avg_0_128D, avg_1_128D;
@@ -4400,7 +4400,7 @@ void dlsch_channel_level_TM34(int **dl_ch_estimates_ext,
   avg_1[0] = avg_0[0];
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 
@@ -4411,7 +4411,7 @@ void dlsch_channel_level_TM56(int **dl_ch_estimates_ext,
                               int *avg,
                               uint8_t symbol,
                               unsigned short nb_rb) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short rb;
   unsigned char aarx,nre=12,symbol_mod;
   __m128i *dl_ch0_128,*dl_ch1_128, dl_ch0_128_tmp, dl_ch1_128_tmp,avg128D;
@@ -4469,7 +4469,7 @@ void dlsch_channel_level_TM56(int **dl_ch_estimates_ext,
   avg[0] = cmax(avg[0],avg[1]);
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 
@@ -4479,7 +4479,7 @@ void dlsch_channel_level_TM7(int **dl_bf_ch_estimates_ext,
                              int *avg,
                              uint8_t symbol,
                              unsigned short nb_rb) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short rb;
   unsigned char aatx,aarx,nre=12,symbol_mod;
   __m128i *dl_ch128,avg128D;
@@ -4532,7 +4532,7 @@ void dlsch_channel_level_TM7(int **dl_bf_ch_estimates_ext,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 //#define ONE_OVER_2_Q15 16384
@@ -4542,7 +4542,7 @@ void dlsch_alamouti(LTE_DL_FRAME_PARMS *frame_parms,
                     int **dl_ch_magb,
                     unsigned char symbol,
                     unsigned short nb_rb) {
-#if defined(__x86_64__)||defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__))||defined(__i386__)
   short *rxF0,*rxF1;
   __m128i *ch_mag0,*ch_mag1,*ch_mag0b,*ch_mag1b;
   unsigned char rb,re;
@@ -4602,7 +4602,7 @@ void dlsch_alamouti(LTE_DL_FRAME_PARMS *frame_parms,
 
   _mm_empty();
   _m_empty();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #endif
 }
 

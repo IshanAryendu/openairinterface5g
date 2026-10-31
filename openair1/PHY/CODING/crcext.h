@@ -33,7 +33,12 @@
 #ifndef __CRCEXT_H__
 #define __CRCEXT_H__
 
+#if defined(__x86_64__) || defined(__i386__)
 #include <x86intrin.h>
+#else
+#include <simde/x86/clmul.h>
+#include <simde/x86/sse4.1.h>
+#endif
 #include "types.h"
 /**
  * Flag indicating availability of PCLMULQDQ instruction

@@ -36,7 +36,7 @@
 #include "common/utils/assertions.h"
 #include "common/utils/utils.h"
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
 #define simd_q15_t __m128i
 #define simdshort_q15_t __m64
 #define shiftright_int16(a,shift) _mm_srai_epi16(a,shift)
@@ -45,7 +45,7 @@
 #define mulhi_s1_int16(a,b) _mm_slli_epi16(_mm_mulhi_epi16(a,b),2)
 #define adds_int16(a,b) _mm_adds_epi16(a,b)
 #define mullo_int16(a,b) _mm_mullo_epi16(a,b)
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 #define simd_q15_t int16x8_t
 #define simdshort_q15_t int16x4_t
 #define shiftright_int16(a,shift) vshrq_n_s16(a,shift)
@@ -254,7 +254,7 @@ extern "C" {
                                                                        const c16_t *alpha,
                                                                        c16_t *y,
                                                                        const int N) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     // Default implementation for x86
     const int8_t makePairs[32] __attribute__((aligned(32)))={
       0,1,0+16,1+16,
@@ -283,7 +283,7 @@ extern "C" {
       x128++;
     } 
     
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     // Default implementation for ARM
     uint32_t i;
 

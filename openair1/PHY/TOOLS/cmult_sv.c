@@ -20,6 +20,14 @@
  */
 
 #include "PHY/sse_intrin.h"
+#ifndef OAI_CPU_HAS_AVX2_DEF
+#define OAI_CPU_HAS_AVX2_DEF
+#if defined(__x86_64__) || defined(__i386__)
+#define OAI_CPU_HAS_AVX2 __builtin_cpu_supports("avx2")
+#else
+#define OAI_CPU_HAS_AVX2 0  // local Jetson port
+#endif
+#endif
 #include "tools_defs.h"
 
 void multadd_complex_vector_real_scalar(int16_t *x,
@@ -66,12 +74,12 @@ void multadd_real_vector_complex_scalar(const int16_t *x, const int16_t *alpha, 
   for (i=0; i<N>>3; i++) {
     const simd_q15_t yr = mulhi_s1_int16(alpha_r_128, x_128[i]);
     const simd_q15_t yi = mulhi_s1_int16(alpha_i_128, x_128[i]);
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     const simd_q15_t tmp = _mm_loadu_si128(y_128);
     _mm_storeu_si128(y_128++, _mm_adds_epi16(tmp, _mm_unpacklo_epi16(yr, yi)));
     const simd_q15_t tmp2 = _mm_loadu_si128(y_128);
     _mm_storeu_si128(y_128++, _mm_adds_epi16(tmp2, _mm_unpackhi_epi16(yr, yi)));
-#elif defined(__arm__) || defined (__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     int16x8x2_t yint;
     yint = vzipq_s16(yr,yi);
     *y_128 = adds_int16(*y_128, yint.val[0]);
@@ -90,7 +98,7 @@ void rotate_cpx_vector(const c16_t *const x, const c16_t *const alpha, c16_t *y,
   // N is the number of complex numbers
   // output_shift reduces the result of the multiplication by this number of bits
   //AssertFatal(N%8==0, "To be developped");
-  if ( (intptr_t)x%32 == 0  && !(intptr_t)y%32 == 0 && __builtin_cpu_supports("avx2")) {
+  if ( (intptr_t)x%32 == 0  && !(intptr_t)y%32 == 0 && OAI_CPU_HAS_AVX2) {
     // output is 32 bytes aligned, but not the input
     
     const c16_t for_re={alpha->r, -alpha->i};
@@ -168,7 +176,7 @@ void rotate_cpx_vector(const c16_t *const x, const c16_t *const alpha, c16_t *y,
     simd_q15_t *y_128,alpha_128;
     int32_t *xd=(int32_t *)x; 
 
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
     __m128i shift = _mm_cvtsi32_si128(output_shift);
     register simd_q15_t m0,m1,m2,m3;
 
@@ -180,7 +188,7 @@ void rotate_cpx_vector(const c16_t *const x, const c16_t *const alpha, c16_t *y,
     ((int16_t *)&alpha_128)[5] = -alpha->i;
     ((int16_t *)&alpha_128)[6] = alpha->i;
     ((int16_t *)&alpha_128)[7] = alpha->r;
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
     int32x4_t shift;
     int32x4_t ab_re0,ab_re1,ab_im0,ab_im1,re32,im32;
     int16_t reflip[8]  __attribute__((aligned(16))) = {1,-1,1,-1,1,-1,1,-1};
@@ -202,7 +210,7 @@ void rotate_cpx_vector(const c16_t *const x, const c16_t *const alpha, c16_t *y,
 
 
     for(i=0; i<N>>2; i++) {
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__aarch64__)) || defined(__i386__)
       m0 = _mm_setr_epi32(xd[0],xd[0],xd[1],xd[1]);
       m1 = _mm_setr_epi32(xd[2],xd[2],xd[3],xd[3]);
       m2 = _mm_madd_epi16(m0,alpha_128); //complex multiply. result is 32bit [Re Im Re Im]
@@ -212,7 +220,7 @@ void rotate_cpx_vector(const c16_t *const x, const c16_t *const alpha, c16_t *y,
 
       y_128[0] = _mm_packs_epi32(m2,m3);        // pack in 16bit integers with saturation [re im re im re im re im]
       //print_ints("y_128[0]=", &y_128[0]);
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__OAI_NO_ARM__) || defined(__OAI_NO_ARM__)
 
       ab_re0 = vmull_s16(((int16x4_t*)xd)[0],((int16x4_t*)&bconj)[0]);
       ab_re1 = vmull_s16(((int16x4_t*)xd)[1],((int16x4_t*)&bconj)[1]);
