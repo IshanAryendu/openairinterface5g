@@ -1239,6 +1239,75 @@ void update_curMsg(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *curMsg, int absolu
   }
 }
 
+// Local PoC patch v2 (overflow-align-patch.sh): read n samples whose slot timing stays locked to the radio
+// clock. A gap in the hardware timestamps (RX overflow) is zero-filled at its real position instead of being
+// stitched over, and hardware samples consumed past the end of the block become a deficit that the next
+// reads zero-fill. *ts is the radio time of buf[..][0]. k selects the state (0 = Uu, 1 = PC5).
+static int ue_aligned_read(openair0_device *dev, int k, openair0_timestamp *ts, void **buf, int n, int nant)
+{
+  static int64_t deficit[2];
+  static openair0_timestamp next_ts[2];
+  openair0_timestamp w0 = 0;
+  bool have_w0 = false;
+  int pos = 0;
+  if (deficit[k] > 0) {
+    w0 = next_ts[k];
+    have_w0 = true;
+  }
+  for (int tries = 0; pos < n; tries++) {
+    AssertFatal(tries < 16, "PoC patch v2: RF read stuck at %d of %d samples\n", pos, n);
+    if (deficit[k] > 0) {
+      int z = deficit[k] < n - pos ? (int)deficit[k] : n - pos;
+      for (int a = 0; a < nant; a++)
+        memset((c16_t *)buf[a] + pos, 0, z * sizeof(c16_t));
+      pos += z;
+      deficit[k] -= z;
+      continue;
+    }
+    void *p[NB_ANTENNAS_RX];
+    for (int a = 0; a < nant; a++)
+      p[a] = (c16_t *)buf[a] + pos;
+    openair0_timestamp tr;
+    int r = dev->trx_read_func(dev, &tr, p, n - pos, nant);
+    if (r < 0)
+      return r;
+    if (r == 0)
+      continue;
+    if (!have_w0) {
+      w0 = tr - pos;
+      have_w0 = true;
+    }
+    int64_t gap = (int64_t)(tr - (w0 + pos));
+    if (gap == 0) {
+      pos += r;
+      continue;
+    }
+    if (gap < 0) {
+      LOG_E(PHY, "PoC patch v2: RF timestamp went back by %ld samples, ignoring\n", (long)-gap);
+      pos += r;
+      continue;
+    }
+    LOG_W(PHY, "PoC patch v2: RX gap of %ld samples at %d/%d, zero-filled to keep slot timing\n", (long)gap, pos, n);
+    if (pos + gap < n) {
+      int keep = r < n - pos - gap ? r : (int)(n - pos - gap);
+      for (int a = 0; a < nant; a++) {
+        memmove((c16_t *)buf[a] + pos + gap, (c16_t *)buf[a] + pos, keep * sizeof(c16_t));
+        memset((c16_t *)buf[a] + pos, 0, gap * sizeof(c16_t));
+      }
+      deficit[k] += pos + gap + r - n > 0 ? pos + gap + r - n : 0;
+      pos = pos + gap + r < n ? pos + gap + r : n;
+    } else {
+      for (int a = 0; a < nant; a++)
+        memset((c16_t *)buf[a] + pos, 0, (n - pos) * sizeof(c16_t));
+      deficit[k] += pos + gap + r - n;
+      pos = n;
+    }
+  }
+  *ts = w0;
+  next_ts[k] = w0 + n;
+  return n;
+}
+
 void rfdevice_trx(PHY_VARS_NR_UE *UE, openair0_device *rfdevice, c16_t **rxdata, int slot_nr, int *rdBlkSz, int *wtBlkSz, openair0_timestamp *ts, openair0_timestamp *wts, int *ta, nr_intf_type_t intf_type) {
   void *rxp[NB_ANTENNAS_RX];
   openair0_timestamp timestamp, writeTimestamp;
@@ -1267,20 +1336,9 @@ void rfdevice_trx(PHY_VARS_NR_UE *UE, openair0_device *rfdevice, c16_t **rxdata,
   }
 
   LOG_D(PHY, "fn rfdevice_trx line %u\n", __LINE__);
-  // Local PoC patch: a rare USB packet error makes UHD return a short block. Read the missing
-  // samples instead of aborting; the slot keeps the first read's timestamp, so TX timing is unaffected.
-  int got = rfdevice->trx_read_func(rfdevice, &timestamp, rxp, readBlockSize, fp->nb_antennas_rx);
-  for (int tries = 0; got >= 0 && got < readBlockSize && tries < 4; tries++) {
-    LOG_W(PHY, "PoC patch: short RF read %d/%d samples in slot %d, reading the remainder\n", got, readBlockSize, slot_nr);
-    void *rxp_rest[NB_ANTENNAS_RX];
-    for (int i = 0; i < fp->nb_antennas_rx; i++)
-      rxp_rest[i] = (void *)((c16_t *)rxp[i] + got);
-    openair0_timestamp ts_rest;
-    int r = rfdevice->trx_read_func(rfdevice, &ts_rest, rxp_rest, readBlockSize - got, fp->nb_antennas_rx);
-    if (r <= 0)
-      break;
-    got += r;
-  }
+  // Local PoC patch v2: overflow-safe read (see ue_aligned_read).
+  const int rdk = (intf_type == PC5);
+  int got = ue_aligned_read(rfdevice, rdk, &timestamp, rxp, readBlockSize, fp->nb_antennas_rx);
   AssertFatal(got == readBlockSize, "RF read returned %d of %d samples\n", got, readBlockSize);
   if(slot_nr == (nb_slot_frame - 1)) {
     // read in first symbol of next frame and adjust for timing drift
@@ -1289,11 +1347,11 @@ void rfdevice_trx(PHY_VARS_NR_UE *UE, openair0_device *rfdevice, c16_t **rxdata,
     if (first_symbols > 0) {
       openair0_timestamp ignore_timestamp;
       AssertFatal(first_symbols ==
-                  rfdevice->trx_read_func(rfdevice,
-                                          &ignore_timestamp,
-                                          (void **)rxdata,
-                                          first_symbols,
-                                          fp->nb_antennas_rx), "");
+                  ue_aligned_read(rfdevice, rdk,
+                                  &ignore_timestamp,
+                                  (void **)rxdata,
+                                  first_symbols,
+                                  fp->nb_antennas_rx), "");
     } else
       LOG_E(PHY,"can't compensate: diff =%d\n", first_symbols);
   }

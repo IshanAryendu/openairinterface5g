@@ -726,6 +726,8 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
   }
 
   samples_received=0;
+  bool have_first_ts = false;
+  openair0_timestamp first_ts = 0;
   while (samples_received != nsamps) {
 
     if (cc>1) {
@@ -739,6 +741,11 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
 
       samples_received += s->rx_stream->recv((void*)((int32_t*)buff_tmp[0]+samples_received),
                                              nsamps-samples_received, s->rx_md);
+    }
+    // Local PoC patch v2: remember the time of the first returned sample (see overflow-align-patch.sh).
+    if (!have_first_ts && samples_received > 0 && s->rx_md.has_time_spec) {
+      first_ts = s->rx_md.time_spec.to_ticks(s->sample_rate);
+      have_first_ts = true;
     }
     if  ((s->wait_for_first_pps == 0) && (s->rx_md.error_code!=uhd::rx_metadata_t::ERROR_CODE_NONE))
       break;
@@ -771,7 +778,7 @@ static int trx_usrp_read(openair0_device *device, openair0_timestamp *ptimestamp
     LOG_E(HW, "%s\n", s->rx_md.to_pp_string(true).c_str());
 
   s->rx_count += nsamps;
-  s->rx_timestamp = s->rx_md.time_spec.to_ticks(s->sample_rate);
+  s->rx_timestamp = have_first_ts ? first_ts : s->rx_md.time_spec.to_ticks(s->sample_rate);
   *ptimestamp = s->rx_timestamp;
 
 #ifdef T_USRP_RX_ANT0
