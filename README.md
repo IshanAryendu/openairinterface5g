@@ -1,3 +1,9 @@
+> **Fork note.** This fork of OpenAirInterface `sl-release-1.0` (NR sidelink) adds fixes that make sidelink
+> mode 2 work between an NVIDIA Jetson Orin Nano and an x86 PC, each with a USRP B210 (aarch64 build, run-time
+> RX->TX offset, HARQ and decoder fixes, band n48, run-time MCS control), and a live-video demo with
+> automatic MCS/bitrate adaptation. Start with [`sidelink-poc/README.md`](sidelink-poc/README.md). The default
+> branch is `sl-release-1.0-jetson-video`. The upstream README follows unchanged.
+
 <h1 align="center">
     <a href="https://openairinterface.org/"><img src="https://openairinterface.org/wp-content/uploads/2015/06/cropped-oai_final_logo.png" alt="OAI" width="550"></a>
 </h1>
