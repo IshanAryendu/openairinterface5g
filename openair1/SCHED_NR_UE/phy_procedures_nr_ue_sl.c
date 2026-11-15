@@ -100,13 +100,14 @@ int nr_slsch_procedures(PHY_VARS_NR_UE *ue, int frame_rx, int slot_rx, int SLSCH
                            pssch_pdu->mod_order,
                            pssch_pdu->num_layers);
 
-  AssertFatal(G>0,"G is 0 : rb_size %u, number_symbols %d, nb_re_dmrs %d, number_dmrs_symbols %d, qam_mod_order %u, nrOfLayer %u\n",
-	      rb_size,
-	      number_symbols,
-	      nb_re_dmrs,
-	      number_dmrs_symbols, // number of dmrs symbols irrespective of single or double symbol dmrs
-	      pssch_pdu->mod_order,
-	      pssch_pdu->num_layers);
+  // Local PoC patch (sci-sanity-patch.sh): a falsely detected SCI (impossible MCS / layer count) is ignored
+  // instead of stopping the modem.
+  if (G <= 0 || pssch_pdu->num_layers != 1
+      || (pssch_pdu->mod_order != 2 && pssch_pdu->mod_order != 4 && pssch_pdu->mod_order != 6 && pssch_pdu->mod_order != 8)) {
+    LOG_W(NR_PHY, "%d.%d ignoring PSSCH with invalid parameters (Qm %u, layers %u, G %d): false SCI detection\n",
+          frame_rx, slot_rx, pssch_pdu->mod_order, pssch_pdu->num_layers, (int)G);
+    return 0;
+  }
   LOG_D(NR_PHY,"slot %d rb_size %d, number_symbols %d, nb_re_dmrs %d, dmrs symbol positions %d, number_dmrs_symbols %d, qam_mod_order %d, nrOfLayer %d\n",
         slot_rx,
         rb_size,
