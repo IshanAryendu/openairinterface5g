@@ -1402,7 +1402,18 @@ void UE_processing(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *curMsg, int readBl
   curMsgTx->tx_wait_for_dlsch = UE->tx_wait_for_dlsch[curMsgTx->proc.nr_slot_tx];
   curMsgTx->intf_type = intf_type;
   UE->tx_wait_for_dlsch[curMsgTx->proc.nr_slot_tx] = 0;
-  pushTpool(&(get_nrUE_params()->Tpool), newElt);
+
+  // Local PoC patch (tx-inline-patch.sh): run TX inline in this RT thread so it never queues behind RX decoding
+  // in the thread pool (late TX -> samples dropped on air). SL_TX_INLINE=0 restores the original behaviour.
+  static int tx_inline = -1;
+  if (tx_inline < 0) {
+    const char *e = getenv("SL_TX_INLINE");
+    tx_inline = (e == NULL || atoi(e) != 0);
+    LOG_I(PHY, "PoC patch: TX slot processing %s\n", tx_inline ? "inline in the RU thread" : "in the thread pool");
+  }
+  notifiedFIFO_elt_t *txElt = newElt;
+  if (!tx_inline)
+    pushTpool(&(get_nrUE_params()->Tpool), txElt);
 
   // RX slot processing. We launch and forget.
   newElt = newNotifiedFIFO_elt(sizeof(nr_rxtx_thread_data_t), curMsg->proc.nr_slot_rx, NULL, UE_dl_processing);
@@ -1411,6 +1422,12 @@ void UE_processing(PHY_VARS_NR_UE *UE, nr_rxtx_thread_data_t *curMsg, int readBl
   curMsgRx->UE = UE;
   curMsgRx->phy_data = UE_dl_preprocessing(UE, &curMsg->proc, intf_type);
   pushTpool(&(get_nrUE_params()->Tpool), newElt);
+
+  if (tx_inline) {
+    processSlotTX(NotifiedFifoData(txElt));
+    delNotifiedFIFO_elt(txElt);
+    return;
+  }
 
   // Wait for TX slot processing to finish
   notifiedFIFO_elt_t *res;
