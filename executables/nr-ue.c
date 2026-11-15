@@ -35,6 +35,7 @@
 #include "PHY/NR_REFSIG/refsig_defs_ue.h"
 #include "radio/COMMON/common_lib.h"
 #include "LAYER2/nr_pdcp/nr_pdcp_oai_api.h"
+#include "executables/poc_rx_to_tx.h"
 
 /*
  *  NR SLOT PROCESSING SEQUENCE
@@ -1105,6 +1106,7 @@ void *UE_thread(void *arg)
 
 void *UE_RU_thread(void *arg)
 {
+  LOG_I(PHY, "PoC patch: RX->TX offset %d slots (SL_RX_TO_TX)\n", DURATION_RX_TO_TX);
   //this thread should be over the processing thread to keep in real time
   PHY_VARS_NR_UE *UE = (PHY_VARS_NR_UE *) arg;
   openair0_timestamp timestamp, writeTimestamp;

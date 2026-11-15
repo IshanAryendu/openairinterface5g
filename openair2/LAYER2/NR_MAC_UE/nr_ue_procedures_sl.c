@@ -24,6 +24,7 @@
 #include "openair2/LAYER2/NR_MAC_COMMON/nr_mac_common.h"
 #include "executables/softmodem-common.h"
 #include "executables/nr-uesoftmodem.h"
+#include "executables/poc_rx_to_tx.h"
 
 #define SL_DEBUG
 
@@ -606,8 +607,8 @@ void configure_psfch_params_tx(int module_idP,
                         ? psfch_periods[*sl_psfch_config->sl_PSFCH_Period_r16] : 0;
 
   int scs = get_softmodem_params()->numerology;
-  uint16_t tx_slot = (rx_ind->slot + DURATION_RX_TO_TX) % nr_slots_per_frame[scs];
-  uint16_t tx_frame = (rx_ind->sfn + (rx_ind->slot + DURATION_RX_TO_TX) / nr_slots_per_frame[scs]) % 1024;
+  uint16_t tx_slot = (rx_ind->slot + POC_PSFCH_TABLE_OFFSET) % nr_slots_per_frame[scs];
+  uint16_t tx_frame = (rx_ind->sfn + (rx_ind->slot + POC_PSFCH_TABLE_OFFSET) / nr_slots_per_frame[scs]) % 1024;
 
   uint8_t ack_nack = (rx_ind->rx_indication_body + pdu_id)->rx_slsch_pdu.ack_nack;
   LOG_D(NR_MAC, "tx_frame %4u.%2u, ack_nack %d rx: %4u.%2u\n", tx_frame, tx_slot, ack_nack, rx_ind->sfn, rx_ind->slot);

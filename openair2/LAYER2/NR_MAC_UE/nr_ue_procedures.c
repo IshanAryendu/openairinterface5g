@@ -57,6 +57,7 @@
 #include "oai_asn1.h"
 #include "common/utils/LOG/log.h"
 #include "common/utils/LOG/vcd_signal_dumper.h"
+#include "executables/poc_rx_to_tx.h"
 
 //#define DEBUG_MIB
 //#define ENABLE_MAC_PAYLOAD_DEBUG 1

@@ -54,6 +54,7 @@
 #include <executables/nr-uesoftmodem.h>
 #include "LAYER2/NR_MAC_COMMON/nr_mac_extern.h"
 #include "LAYER2/RLC/rlc.h"
+#include "executables/poc_rx_to_tx.h"
 
 extern const int pscch_tda[2];
 extern const int pscch_rb_table[5];
@@ -3399,8 +3400,8 @@ void preprocess(NR_UE_MAC_INST_t *mac,
       long psfch_period = (sl_psfch_config->sl_PSFCH_Period_r16)
                             ? psfch_periods[*sl_psfch_config->sl_PSFCH_Period_r16] : 0;
 
-      int rcv_tx_frame = (frame + ((slot + DURATION_RX_TO_TX) / nr_slots_frame)) % 1024;
-      int rcv_tx_slot = (slot + DURATION_RX_TO_TX) % nr_slots_frame;
+      int rcv_tx_frame = (frame + ((slot + POC_PSFCH_TABLE_OFFSET) / nr_slots_frame)) % 1024;
+      int rcv_tx_slot = (slot + POC_PSFCH_TABLE_OFFSET) % nr_slots_frame;
       int psfch_slot = get_feedback_slot(psfch_period, rcv_tx_slot);
       update_harq_lists(mac, frame, slot, UE);
       *fb_frame = rcv_tx_frame;
