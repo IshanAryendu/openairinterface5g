@@ -3398,7 +3398,14 @@ void preprocess(NR_UE_MAC_INST_t *mac,
       int rcv_tx_frame = (frame + ((slot + POC_PSFCH_TABLE_OFFSET) / nr_slots_frame)) % 1024;
       int rcv_tx_slot = (slot + POC_PSFCH_TABLE_OFFSET) % nr_slots_frame;
       int psfch_slot = get_feedback_slot(psfch_period, rcv_tx_slot);
-      update_harq_lists(mac, frame, slot, UE);
+      {
+        // Local PoC patch (harq-feedback-patch.sh): frame/slot are the TX slot being scheduled; feedback can
+        // only have been received up to the RX slot, DURATION_RX_TO_TX earlier (2 more slots of margin).
+        int poc_rx = (int)frame * nr_slots_frame + (int)slot - DURATION_RX_TO_TX - 2;
+        if (poc_rx < 0)
+          poc_rx += 1024 * nr_slots_frame;
+        update_harq_lists(mac, poc_rx / nr_slots_frame, poc_rx % nr_slots_frame, UE);
+      }
       *fb_frame = rcv_tx_frame;
       *fb_slot = psfch_slot;
       LOG_D(NR_MAC, "Tx SLSCH %4d.%2d, Expected Feedback: %4d.%2d in current PSFCH: psfch_period %ld\n",
@@ -3739,7 +3746,18 @@ bool nr_ue_sl_pssch_scheduler(NR_UE_MAC_INST_t *mac,
     } // end of initial transmission
 
     const uint32_t TBS = pscch_pssch_pdu->tb_size;
-    memcpy(pscch_pssch_pdu->slsch_payload, cur_harq->transportBlock, TBS);
+    // Local PoC patch (harq-feedback-patch.sh): a retransmission whose block size differs from the first
+    // transmission must still be a valid MAC PDU (see the script header).
+    const uint32_t poc_orig = cur_harq->sched_pssch.tb_size;
+    if (cur_harq->round != 0 && poc_orig != TBS && TBS > sizeof(NR_SLSCH_MAC_SUBHEADER_FIXED)) {
+      uint8_t *poc_p = (uint8_t *)pscch_pssch_pdu->slsch_payload;
+      const uint32_t poc_keep = TBS > poc_orig ? poc_orig : sizeof(NR_SLSCH_MAC_SUBHEADER_FIXED);
+      memcpy(poc_p, cur_harq->transportBlock, poc_keep);
+      ((NR_MAC_SUBHEADER_FIXED *)(poc_p + poc_keep))->R = 0;
+      ((NR_MAC_SUBHEADER_FIXED *)(poc_p + poc_keep))->LCID = SL_SCH_LCID_SL_PADDING;
+      memset(poc_p + poc_keep + 1, 0, TBS - poc_keep - 1);
+    } else
+      memcpy(pscch_pssch_pdu->slsch_payload, cur_harq->transportBlock, TBS);
     // mark UE as scheduled
     sched_pssch->rbSize = 0;
     is_resource_allocated = true;
