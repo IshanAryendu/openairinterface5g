@@ -623,6 +623,32 @@ static void RU_write(nr_rxtx_thread_data_t *rxtxD, bool sl_tx_action) {
 
 }
 
+// Local PoC instrumentation (tx-profile-patch.sh)
+static inline uint64_t poc_us2(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000; }
+static void poc_tx_split(bool action, uint64_t mac, uint64_t phy, uint64_t wr)
+{
+  static uint64_t n, na, msum, mmax, psum, pmax, wsum, wmax, imsum, immax, tot_max, last;
+  if (action) {
+    na++; msum += mac; psum += phy; wsum += wr;
+    if (mac > mmax) mmax = mac;
+    if (phy > pmax) pmax = phy;
+    if (wr > wmax) wmax = wr;
+    if (mac + phy + wr > tot_max) tot_max = mac + phy + wr;
+  } else {
+    n++; imsum += mac + phy; if (mac + phy > immax) immax = mac + phy;
+  }
+  uint64_t now = poc_us2();
+  if (now - last >= 1000000) {
+    if (last)
+      LOG_I(PHY, "PoC TX split: %lu tx slots: mac avg %lu max %lu, phy avg %lu max %lu, write avg %lu max %lu, total max %lu us | %lu idle sl slots: avg %lu max %lu us\n",
+            (unsigned long)na, (unsigned long)(na ? msum / na : 0), (unsigned long)mmax, (unsigned long)(na ? psum / na : 0), (unsigned long)pmax,
+            (unsigned long)(na ? wsum / na : 0), (unsigned long)wmax, (unsigned long)tot_max,
+            (unsigned long)n, (unsigned long)(n ? imsum / n : 0), (unsigned long)immax);
+    n = na = msum = mmax = psum = pmax = wsum = wmax = imsum = immax = tot_max = 0;
+    last = now;
+  }
+}
+
 void processSlotTX(void *arg) {
 
   nr_rxtx_thread_data_t *rxtxD = (nr_rxtx_thread_data_t *) arg;
@@ -630,6 +656,7 @@ void processSlotTX(void *arg) {
   PHY_VARS_NR_UE    *UE   = rxtxD->UE;
   nr_phy_data_tx_t phy_data = {0};
   bool sl_tx_action = false;
+  uint64_t poc_p0 = poc_us2(), poc_p1 = poc_p0;
 
   if (proc->tx_slot_type == NR_SIDELINK_SLOT) {
 
@@ -655,6 +682,7 @@ void processSlotTX(void *arg) {
       stop_meas(&UE->ue_ul_indication_stats);
     }
 
+    poc_p1 = poc_us2();
     sl_tx_action = phy_procedures_nrUE_SL_TX(UE, proc, &phy_data);
   } else {
     if (proc->tx_slot_type == NR_UPLINK_SLOT || proc->tx_slot_type == NR_MIXED_SLOT){
@@ -689,7 +717,10 @@ void processSlotTX(void *arg) {
     }
   }
 
+  uint64_t poc_p2 = poc_us2();
   RU_write(rxtxD, sl_tx_action);
+  if (proc->tx_slot_type == NR_SIDELINK_SLOT)
+    poc_tx_split(sl_tx_action, poc_p1 - poc_p0, poc_p2 - poc_p1, poc_us2() - poc_p2);
 }
 
 nr_phy_data_t UE_dl_preprocessing(PHY_VARS_NR_UE *UE, UE_nr_rxtx_proc_t *proc,  nr_intf_type_t intf_type)
@@ -1125,6 +1156,26 @@ static void slot_timing_stats(uint64_t wait_us, uint64_t proc_us)
   }
 }
 
+// Local PoC instrumentation (tx-profile-patch.sh): RU thread backlog relative to the radio clock
+static void poc_rx_lag(uint64_t host_us, int64_t dev_ticks, int samples_per_subframe)
+{
+  static int64_t dmin = INT64_MAX, dmax = INT64_MIN, last, n05, n10, n20, n;
+  int64_t d = (int64_t)host_us - dev_ticks * 1000 / samples_per_subframe;   // us, arbitrary constant offset
+  if (d < dmin) dmin = d;
+  if (d > dmax) dmax = d;
+  n++;
+  if (d - dmin > 500) n05++;
+  if (d - dmin > 1000) n10++;
+  if (d - dmin > 2000) n20++;
+  if ((int64_t)host_us - last >= 1000000) {
+    if (last)
+      LOG_I(PHY, "PoC RX lag: max %ld us behind the radio clock; slots >0.5ms %ld >1ms %ld >2ms %ld of %ld\n",
+            (long)(dmax - dmin), (long)n05, (long)n10, (long)n20, (long)n);
+    dmin = INT64_MAX; dmax = INT64_MIN; n = n05 = n10 = n20 = 0;
+    last = host_us;
+  }
+}
+
 void *UE_RU_thread(void *arg)
 {
   LOG_I(PHY, "PoC patch: RX->TX offset %d slots (SL_RX_TO_TX)\n", DURATION_RX_TO_TX);
@@ -1198,6 +1249,7 @@ void *UE_RU_thread(void *arg)
             uint64_t t0 = poc_now_us();
             rfdevice_trx(UE, &UE->rfdevice_sl, UE->common_vars.rxdata_sl, slot_nr, &readBlockSizeSl, &writeBlockSizeSl, &timestampSl, &writeTimestampSl, &timing_advance_sl, PC5);
             uint64_t t1 = poc_now_us();
+            poc_rx_lag(t1, (int64_t)timestampSl + readBlockSizeSl, UE->SL_UE_PHY_PARAMS.sl_frame_params.samples_per_subframe);
             UE_processing(UE, &curMsgSl, readBlockSizeSl, writeBlockSizeSl, writeTimestampSl, &txFifoSl, PC5);
             slot_timing_stats(t1 - t0, poc_now_us() - t1);
         }
