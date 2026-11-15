@@ -42,6 +42,7 @@
 #include <executables/nr-uesoftmodem.h>
 #include "NR_MAC_UE/mac_defs_sl.h"
 #include "NR_MAC_gNB/nr_mac_gNB.h"
+#include "executables/poc_mcs_ctl.h"
 
 #define LOWER_BLER 0.2344
 #define UPPER_BLER 5.547
@@ -206,6 +207,23 @@ uint32_t compute_FRIV(uint8_t sl_max_num_per_reserve,
   return friv;
 }
 
+// Local PoC patch (runtime-mcs-patch.sh): optional cap on PSSCH transmissions per second, set by the
+// controller in the control file. Called once per transmit opportunity of this UE (400 per second); lets
+// tx_limit of every 400 through, evenly spaced.
+bool poc_tx_allowed(void)
+{
+  poc_mcs_ctl_t *pc = poc_mcs_ctl();
+  const int limit = pc ? pc->tx_limit : 0;
+  if (limit <= 0 || limit >= 400)
+    return true;
+  static int acc = 0;
+  acc += limit;
+  if (acc < 400)
+    return false;
+  acc -= 400;
+  return true;
+}
+
 void nr_schedule_slsch(NR_UE_MAC_INST_t *mac, int frameP, int slotP, nr_sci_pdu_t *sci_pdu,
                        nr_sci_pdu_t *sci2_pdu, nr_sci_format_t format2,
                        NR_SL_UE_info_t *UE,
@@ -277,6 +295,37 @@ void nr_schedule_slsch(NR_UE_MAC_INST_t *mac, int frameP, int slotP, nr_sci_pdu_
   // (while still reporting the TB as correct), so link adaptation must not go there.
   if (sched_pssch->mcs > get_nrUE_params()->sl_max_mcs_cap)
     sched_pssch->mcs = get_nrUE_params()->sl_max_mcs_cap;
+
+  // Local PoC patch (runtime-mcs-patch.sh): a user-space controller may set the MCS while the modem runs.
+  {
+    poc_mcs_ctl_t *pc = poc_mcs_ctl();
+    if (pc) {
+      pc->mcs_modem = sched_pssch->mcs;
+      const int force = pc->force_mcs;
+      if (force >= 0)
+        sched_pssch->mcs = force > max_mcs_table ? max_mcs_table : force;
+    }
+    // A HARQ retransmission must keep the MCS (and so the transport block size) of its first transmission:
+    // re-sending a block with another MCS delivers garbage with a valid CRC, which corrupts the receiver's
+    // PDCP counter for good (every later packet is then discarded until the modems restart).
+    static uint8_t poc_first_mcs[32];
+    const int hp = cur_harq ? cur_harq->sl_harq_pid : -1;
+    if (hp >= 0 && hp < 32) {
+      if (cur_harq->round == 0)
+        poc_first_mcs[hp] = sched_pssch->mcs;
+      else
+        sched_pssch->mcs = poc_first_mcs[hp];
+    }
+    if (pc) {
+      pc->mcs_in_use = sched_pssch->mcs;
+      pc->cqi = cqi;
+      pc->sched_count++;
+      for (int r = 0; r < 4; r++)
+        pc->rounds[r] = stats->rounds[r];
+      pc->errors = stats->errors;
+      pc->total_bytes = stats->total_bytes;
+    }
+  }
 
   uint16_t sl_max_num_reserve = *mac->sl_tx_res_pool->sl_UE_SelectedConfigRP_r16->sl_MaxNumPerReserve_r16;
   /*

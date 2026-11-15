@@ -3451,6 +3451,11 @@ bool nr_ue_sl_pssch_scheduler(NR_UE_MAC_INST_t *mac,
 
   if (slot < 10 && !get_nrUE_params()->sync_ref) return is_resource_allocated;
 
+  // Local PoC patch (runtime-mcs-patch.sh): optional cap on PSSCH transmissions per second (overload protection)
+  extern bool poc_tx_allowed(void);
+  if (!poc_tx_allowed())
+    return is_resource_allocated;
+
   LOG_D(NR_MAC,"[UE%d] SL-PSSCH SCHEDULER: Frame:SLOT %d:%d, slot_type:%d\n",
         sl_ind->module_id, frame, slot,sl_ind->slot_type);
 
