@@ -224,6 +224,8 @@ static void  sl_prepare_phy_config(int module_id,
     sl_band = 47;
   else if (pointA_ARFCN >= 514000 && pointA_ARFCN <= 524000)
     sl_band = 38;
+  else if (pointA_ARFCN >= 636668 && pointA_ARFCN <= 646666) // Local PoC patch (cbrs-profile.sh): CBRS n48, 3550-3700 MHz
+    sl_band = 48;
 
   AssertFatal(sl_band, "not valid band for Sidelink operation\n");
 
