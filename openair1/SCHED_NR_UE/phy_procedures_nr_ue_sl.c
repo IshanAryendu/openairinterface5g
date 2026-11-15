@@ -547,6 +547,26 @@ void psbch_pscch_pssch_processing(PHY_VARS_NR_UE *ue,
 
   return;
 }
+// Local PoC instrumentation (tx-stage-patch.sh)
+#include <time.h>
+static inline uint64_t poc_us3(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000; }
+static void poc_tx_stages(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+{
+  static uint64_t n, sa, sb, sc, sd, se, mc, me, last;
+  n++; sa += a; sb += b; sc += c; sd += d; se += e;
+  if (c > mc) mc = c;
+  if (e > me) me = e;
+  uint64_t now = poc_us3();
+  if (now - last >= 1000000) {
+    if (last)
+      LOG_I(PHY, "PoC TX stages: %lu pssch slots: clear %lu, sci1 %lu, ulsch %lu (max %lu), extra %lu, ofdm %lu (max %lu) us avg\n",
+            (unsigned long)n, (unsigned long)(sa / n), (unsigned long)(sb / n), (unsigned long)(sc / n), (unsigned long)mc,
+            (unsigned long)(sd / n), (unsigned long)(se / n), (unsigned long)me);
+    n = sa = sb = sc = sd = se = mc = me = 0;
+    last = now;
+  }
+}
+
 bool phy_procedures_nrUE_SL_TX(PHY_VARS_NR_UE *ue,
                             UE_nr_rxtx_proc_t *proc,
                             nr_phy_data_tx_t *phy_data)
@@ -567,7 +587,9 @@ bool phy_procedures_nrUE_SL_TX(PHY_VARS_NR_UE *ue,
 
   const int samplesF_per_slot = NR_SYMBOLS_PER_SLOT * fp->ofdm_symbol_size;
   c16_t txdataF_buf[fp->nb_antennas_tx * samplesF_per_slot] __attribute__((aligned(32)));
+  uint64_t poc_q0 = poc_us3();
   memset(txdataF_buf, 0, sizeof(txdataF_buf));
+  uint64_t poc_q1 = poc_us3(), poc_q2 = poc_q1, poc_q3 = poc_q1; bool poc_pssch = false;
   c16_t *txdataF[fp->nb_antennas_tx]; /* workaround to be compatible with current txdataF usage in all tx procedures. */
   for(int i=0; i< fp->nb_antennas_tx; ++i)
     txdataF[i] = &txdataF_buf[i * samplesF_per_slot];
@@ -590,6 +612,7 @@ bool phy_procedures_nrUE_SL_TX(PHY_VARS_NR_UE *ue,
       LOG_D(NR_PHY, "(%d.%d) Sending %s\n", frame_tx, slot_tx, sl_tx_actions[phy_data->sl_tx_action - SL_NR_CONFIG_TYPE_TX_PSBCH]);
     phy_data->pscch_Nid = nr_generate_sci1(ue, txdataF[0], fp, AMP, slot_tx, &phy_data->nr_sl_pssch_pscch_pdu) &0xFFFF;
     nfapi_nr_dl_tti_csi_rs_pdu_rel15_t *csi_params = (nfapi_nr_dl_tti_csi_rs_pdu_rel15_t *)&phy_data->nr_sl_pssch_pscch_pdu.nr_sl_csi_rs_pdu;
+    poc_q2 = poc_us3(); poc_pssch = true;
     csi_params->scramb_id = phy_data->pscch_Nid % (1 << 10);
     for (uint8_t harq_pid = 0; harq_pid < NR_MAX_ULSCH_HARQ_PROCESSES; harq_pid++) {
       if (ue->sl_harq_processes[harq_pid].status == ACTIVE) {
@@ -597,6 +620,7 @@ bool phy_procedures_nrUE_SL_TX(PHY_VARS_NR_UE *ue,
       }
     }
 
+    poc_q3 = poc_us3();
     sl_phy_params->pscch.num_pscch_tx ++;
     sl_phy_params->pssch.num_pssch_sci2_tx ++;
     sl_phy_params->pssch.num_pssch_tx ++;
@@ -634,7 +658,9 @@ bool phy_procedures_nrUE_SL_TX(PHY_VARS_NR_UE *ue,
     }
     tx_action = true;
   }
+  uint64_t poc_q4 = poc_us3();
   if (tx_action) {
+    poc_q4 = poc_us3();
     LOG_D(NR_PHY, "Sending SL data \n");
     nr_ue_pusch_common_procedures(ue,
                                   proc->nr_slot_tx,
@@ -643,6 +669,7 @@ bool phy_procedures_nrUE_SL_TX(PHY_VARS_NR_UE *ue,
                                   txdataF,
                                   link_type_pc5);
   }
+  if (poc_pssch) poc_tx_stages(poc_q1 - poc_q0, poc_q2 - poc_q1, poc_q3 - poc_q2, poc_q4 - poc_q3, poc_us3() - poc_q4);
   LOG_D(NR_PHY, "****** end Sidelink TX-Chain for AbsSubframe %d.%d ******\n",
         frame_tx, slot_tx);
   return tx_action;
