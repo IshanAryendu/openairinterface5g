@@ -153,7 +153,9 @@ int nr_slsch_procedures(PHY_VARS_NR_UE *ue, int frame_rx, int slot_rx, int SLSCH
   else{
     pusch_pdu.maintenance_parms_v3.ldpcBaseGraph=1;
   }
-  pusch_pdu.maintenance_parms_v3.tbSizeLbrmBytes=slsch_pdu->tbslbrm>>3;
+  // Local PoC patch (lbrm-units-patch.sh): despite its name this field is read as BITS by the decoder,
+  // and the sender uses bits; ">>3" here made the receiver's circular buffer 8 times too short.
+  pusch_pdu.maintenance_parms_v3.tbSizeLbrmBytes=slsch_pdu->tbslbrm;
 
   LOG_D(NR_PHY, "%4d.%2d Calling nr_ulsch_decoding\n", frame_rx, slot_rx);
   int nbDecode =
