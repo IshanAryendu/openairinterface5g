@@ -880,8 +880,10 @@ void update_harq_lists(NR_UE_MAC_INST_t *mac, frame_t frame, sub_frame_t slot, N
   int cur = sched_ctrl->feedback_sl_harq.head;
   while (cur != -1) {
     NR_UE_sl_harq_t *harq = &sched_ctrl->sl_harq_processes[cur];
-    if ((harq->feedback_frame < frame
-         || (harq->feedback_frame == frame && harq->feedback_slot < slot))) {
+    const int poc_next = sched_ctrl->feedback_sl_harq.next[cur]; // read before cur is unlinked
+    // Local PoC patch (harq-deadlock-patch.sh): frame numbers wrap at 1024
+    const int poc_age = ((int)frame - (int)harq->feedback_frame + 1024) % 1024;
+    if ((poc_age > 0 && poc_age < 512) || (poc_age == 0 && harq->feedback_slot < slot)) {
       remove_nr_list(&sched_ctrl->feedback_sl_harq, cur);
       harq->feedback_slot = -1;
       harq->is_waiting = false;
@@ -892,7 +894,7 @@ void update_harq_lists(NR_UE_MAC_INST_t *mac, frame_t frame, sub_frame_t slot, N
         harq->round++;
       }
     }
-    cur = sched_ctrl->feedback_sl_harq.next[cur];
+    cur = poc_next;
   }
 }
 

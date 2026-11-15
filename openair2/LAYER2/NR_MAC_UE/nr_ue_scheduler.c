@@ -3366,14 +3366,9 @@ void preprocess(NR_UE_MAC_INST_t *mac,
 
     /* retransmission */
     if (sched_pssch->sl_harq_pid >= 0) {
-      if (sched_ctrl->available_sl_harq.head < 0) {
-        LOG_W(NR_MAC, "[UE][%4d.%2d] UE has no free SL HARQ process, skipping\n",
-              frame,
-              slot);
-        continue;
-      } else {
-         sched_ctrl->sched_csi_report.active = false;
-      }
+      // Local PoC patch (harq-deadlock-patch.sh): a retransmission re-uses its own HARQ process, so it
+      // must not wait for a free one (that wait never ended once all processes were retransmitting).
+      sched_ctrl->sched_csi_report.active = false;
     } else {
       if (sched_ctrl->available_sl_harq.head < 0) {
         LOG_W(NR_MAC, "[UE][%4d.%2d] UE has no free SL HARQ process, skipping\n",
